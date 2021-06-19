@@ -1,0 +1,70 @@
+
+
+
+
+
+#####################
+	  S065   		#
+#####################
+	   AT     		#
+#####################
+	one by one 		#
+#####################
+
+
+
+
+
+1- copy the delivery from the artifactory to the ansible server in /tmp directory  ( get the location from the deployment sheet)
+	cd /tmp 
+	curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-AT-gepard-esb-configuration/1.0.91-SNAPSHOT/gep-AT-gepard-esb-configuration-2.8.0-20210208.233012-22.jar"
+	curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O ""
+	(OR)
+	wget --header='X-JFrog-Art-Api:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg' https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-AT-gepard-esb-configuration/1.0.91-SNAPSHOT/gep-AT-gepard-esb-configuration-2.8.0-20210208.233012-22.jar
+											
+2- copy the delivery from ansible to the AT servers									
+		ansible -i S065 AT -m copy -a "src=/tmp/gepard-esb-gmsg-notification-2.8.0-20210210.160652-5.war dest=/tmp" -u root  --become-user jboss
+		ansible -i S065 AT -m shell  -a "cp -r /tmp/gepard-esb-configuration-2.8.0-20210208.233012-22.jar /tmp" -u root  --become-user jboss
+
+3- Perform the deployment using CLI : 
+		ansible -i S065 AT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gepard-esb-gmsg-notification-2.8.0-20210210.160652-5.war --name=gepard-esb-gmsg-notification.war --force"' -u root --become-user jboss
+
+4- Get the deployment info for double check of the deployment performed 
+		ansible -i S065 AT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep gepard-esb-gmsg-notification ' -u root  --become-user jboss 
+
+5- Get the version of the new deployment 
+cd /home/ansible/ansible-gepard-versions
+	ansible-playbook  retrieve_versions.yml  -i S065 --extra-vars "hosts_group=All_S065 env_prefix=S065"  --vault-password-file /tmp/.terces
+	ansible-playbook retrieve_versions.yml --extra-vars "hosts_group=Gepard env_prefix=S065" -i S065
+
+6 to check the version on firfox 
+https://gepard.de065.corpintra.net/versions.txt
+
+
+
+
+
+#####################
+	  Example  		#
+#####################
+ansible -i S065  AT  -m copy -a "src=/tmp/gepard-esb-afps-plf-proxy-2.8.0-20210209.192051-2.war dest=/tmp" -u root --become-user jboss
+
+ansible -i S065  AT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gepard-esb-afps-plf-proxy-2.8.0-20210209.192051-2.war --name=gepard-esb-afps-plf-proxy.war --force"' -u root --become-user jboss
+
+https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/esb/gepard-esb-gmsg-notification/2.8.0-SNAPSHOT/gepard-esb-gmsg-notification-2.8.0-20210210.160652-5.war
+
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/esb/gepard-esb-gmsg-notification/2.8.0-SNAPSHOT/gepard-esb-gmsg-notification-2.8.0-20210210.160652-5.war"
+
+
+
+----------
+https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/esb/gepard-esb-gmsg-notification/2.8.0-SNAPSHOT/gepard-esb-gmsg-notification-2.8.0-20210211.163139-6.war
+
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/esb/gepard-esb-gmsg-notification/2.8.0-SNAPSHOT/gepard-esb-gmsg-notification-2.8.0-20210211.163139-6.war"
+
+ansible -i S065 AT -m copy -a "src=/tmp/gepard-esb-gmsg-notification-2.8.0-20210211.163139-6.war dest=/tmp" -u root  --become-user jboss
+ansible -i S065 AT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep gepard-esb-gmsg-notification ' -u root  --become-user jboss 
+ansible -i S065 AT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gepard-esb-gmsg-notification-2.8.0-20210211.163139-6.war --name=gepard-esb-gmsg-notification.war --force"' -u root --become-user jboss 
+ansible -i S065 AT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep gepard-esb-gmsg-notification ' -u root  --become-user jboss 
+
+

@@ -1,0 +1,170 @@
+e037_a_mostafm 
+Password-Jan9999
+ 
+mostafm
+c52a2911c59bf370ab4350e79b9862c564a24842 
+
+
+emea\e037_a_hagaber
+Ludwigsfelde_2020
+
+---git user 
+hagaber
+7b87cd207b39044f7e056e77e255902741810b77
+
+openVPN user -- Gepard Dev  --  Orch user 
+hgaber
+5DMrjoCbr299iF3K5rDM
+
+--------------BT -----------------
+1- clone the ansible Managment scripts  (any file can be user/Branch name changed accourding to the env):
+	git clone https://git.daimler.com/ITVD/ansible-gepard-manage.git
+	git clone --branch W566  https://git.daimler.com/ITVD/ansible-gepard-manage.git
+
+
+2- double check of the connection of the repo :
+	cd /etc/ansible/Maha/ansible-gepard-manage
+	vi GDDR.yml
+		art_base_url: https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard
+
+3- double check on the model in the Instraction-template 
+
+4- perform the preparation 
+	ansible-playbook GDDR.yml --extra-vars "env=566_int tier=BT module=pord version=1.12.0-SNAPSHOT" --tags prepare
+
+5- perform the download  
+	ansible-playbook GDDR.yml --extra-vars "env=566_int tier=BT module=pord version=1.12.0-SNAPSHOT" --tags downlaod
+
+6- deployment 
+	ansible-playbook GDDR.yml --extra-vars "env=566_int tier=BT module=pord version=1.12.0-SNAPSHOT" --tags deploy  
+
+7- Get the deployment info for double check of the deployment performed 
+		ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep masterdataservices ' -u root -i T566 --become-user jboss
+
+8- Get the version of the new deployment 
+		ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions.yml --extra-vars "hosts_group=All_TEST_566 env_prefix=T566"
+0 1 * * * ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions_tst.yml --extra-vars "hosts_group=All_TST_566 env_prefix=T566"
+
+9 to check the version on firfox 
+		https://gepard-test.us566.corpintra.net/versions.txt
+
+
+*** undeploy Manually 
+	on the server (i566algebt01)
+	cd /srv/jboss/jboss-eap-7.2/bin 
+	./jboss-cli.sh -c  "undeploy gep-pord-services-ear.ear "
+
+
+============================================
+------------  DT    masterdataservices-1.0.91-SNAPSHOT.war
+1- copy the delivery from the artifactory to the ansible server in /tmp directory  ( get the location from the deployment sheet)
+	cd /tmp 
+	curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-dt-masterdataservices/1.0.91-SNAPSHOT/gep-dt-masterdataservices-1.0.91-SNAPSHOT.war"
+	(OR)
+	wget --header='X-JFrog-Art-Api:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg' https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-dt-masterdataservices/1.0.91-SNAPSHOT/gep-dt-masterdataservices-1.0.91-SNAPSHOT.war
+											
+2- copy the delivery from ansible to the DT servers									
+		ansible DT -m copy -a "src=/tmp/masterdataservices-1.0.91-SNAPSHOT.war dest=/tmp" -u root -i T566 --become-user jboss
+		ansible DT -m shell  -a "cp -r /tmp/masterdataservices-1.0.91-SNAPSHOT.war /tmp" -u root -i T566 --become-user jboss
+
+3- Perform the deployment using CLI : 
+		ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gep-dt-masterdataservices-1.0.91-SNAPSHOT.war --name=gep-dt-masterdataservices.war --force"' -u root -i T566 --become-user jboss
+
+4- Get the deployment info for double check of the deployment performed 
+		ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep masterdataservices ' -u root -i T566 --become-user jboss
+
+5- Get the version of the new deployment 
+		ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions.yml --extra-vars "hosts_group=All_TEST_566 env_prefix=T566"
+
+6 to check the version on firfox 
+		https://gepard-test.us566.corpintra.net/versions.txt
+
+
+--------@ INT ------------
+		ansible DT -m copy -a "src=/tmp/masterdataservices-1.0.91-SNAPSHOT.war dest=/tmp" -u root -i I566 --become-user jboss
+		ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/masterdataservices-1.0.91-SNAPSHOT.war --name=gep-dt-masterdataservices.war --force"' -u root -i I566 --become-user jboss
+		ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep masterdataservices ' -u root -i I566 --become-user jboss
+		ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions.yml --extra-vars "hosts_group=All_TEST_566 env_prefix=I566"
+
+		to check the version on firfox 
+		https://gepard-test.us566.corpintra.net/versions.txt
+
+============================================
+---------------- FE ------------
+1- clone the ansible deployment scripts  (any file can be user/Branch name changed accourding to the env): 
+	cd /etc/ansible/Maha
+	git clone --branch T566  https://git.daimler.com/ITVD/ansible-gepard-deploy.git
+	git clone --branch T566  https://git.daimler.com/ITVD/ansible-gepard-deploy.git
+
+2- update the file with the new delivery version as send in the deployment sheet:
+		/etc/ansible/Maha/ansible-gepard-deploy/releases> vi dt_release.yml
+
+3- backup the Gepard directory in the FE to rollback cases :
+	ansible LB -a 'cp -r /srv/www/vhosts/gepard  /srv/www/vhosts/gepard_11052020' -u root -i T566 --become-user jboss --vault-password-file /tmp/.terces
+
+4- clean the tmp files :
+ansible-playbook deployment.yml --tags cleanup -i T566 --vault-password-file /tmp/.terces --extra-vars "version=2.7.0"  --limit LB 
+
+5- perform the deployment :
+	ansible-playbook deployment.yml -i T566 --tags fe --vault-password-file /tmp/.terces --extra-vars "version=2.7.0" 
+
+6- checking the URL from the browzer :
+	https://gepard-test.us566.corpintra.net
+
+7- checking andon URL 
+	https://gepard-test.us566.corpintra.net/andon/
+
+8- save the changes on the git server 
+	Git status 
+	Git add 
+	Git commit 
+
+** manuall backup Gepard FE directory 
+	root@t566ilgedt01:/srv/www/vhosts : cp -r gepard gepard-11042020
+	root@t566ilgedt02:/srv/www/vhosts : cp -r gepard gepard-11042020
+
+** manuall restart of each server (in case needed while rollback)
+	service apache2 start
+	service apache2 status
+
+**** rollback steps 
+for each FE server Remove the exist Gepard folder and restart the apache 
+
+
+
+git clone --branch I566  https://git.daimler.com/ITVD/ansible-gepard-deploy.git
+ansible LB -a 'cp -r /srv/www/vhosts/gepard  /srv/www/vhosts/gepard_11052020' -u root -i T566 --become-user jboss
+
+
+--------- for the other teir 
+	ansible-playbook deployment.yml -i T566 --tags dt  --vault-password-file /tmp/.terces --extra-vars "version=2.7.0" 
+	ansible-playbook deployment.yml -i T566 --tags be  --vault-password-file /tmp/.terces --extra-vars "version=2.7.0" 
+
+
+
+
+
+------------  AT     one .war file deployment 
+1- copy the delivery from the artifactory to the ansible server in /tmp directory  ( get the location from the deployment sheet)
+	cd /tmp 
+	curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/esb/gepard-esb-plf-inspection/2.7.0-SNAPSHOT/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war"
+	OR 
+	wget --header='X-JFrog-Art-Api:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg' https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/esb/gepard-esb-plf-inspection/2.7.0-SNAPSHOT/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war
+
+2- copy the delivery from ansible to the AT servers									
+		ansible AT -m copy -a "src=/tmp/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war dest=/tmp" -u root -i T566 --become-user jboss
+		OR 
+		ansible AT -m shell  -a "cp -r /tmp/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war /tmp" -u root -i T566 --become-user jboss
+
+3- Perform the deployment using CLI : 
+		ansible AT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war --name=gepard-esb-plf-inspection.war --force"' -u root -i T566 --become-user jboss
+
+4- Get the deployment info for double check of the deployment performed 
+		ansible AT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep esb-plf-inspection ' -u root -i T566 --become-user jboss
+
+5- Get the version of the new deployment  ((( from crontab -e )))
+		ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions_tst.yml --extra-vars "hosts_group=All_TST_566 env_prefix=T566"
+
+6 to check the version on firfox 
+		https://gepard-test.us566.corpintra.net/versions.txt
+

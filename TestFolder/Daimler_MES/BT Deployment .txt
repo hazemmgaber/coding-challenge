@@ -1,0 +1,115 @@
+
+
+
+
+------------------------------
+----------- BT TEST  ---------
+---------  INT       ---------
+--------- one by one ---------
+------------------------------
+
+
+1- clone the ansible Managment scripts  (any file can be user/Branch name changed accourding to the env):
+	git clone --branch W566  https://git.daimler.com/ITVD/ansible-gepard-manage.git
+
+
+2- double check of the connection of the repo :
+	cd /etc/ansible/Maha/ansible-gepard-manage
+	vi GDDR.yml
+		art_base_url: https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard
+
+3- double check that the model exist in the Instraction-template 
+
+4- perform the preparation 
+	ansible-playbook GDDR.yml --extra-vars "env=566_int tier=BT module=pord version=1.12.0-SNAPSHOT" --tags prepare
+
+5- perform the download  
+	ansible-playbook GDDR.yml --extra-vars "env=566_int tier=BT module=pord version=1.12.0-SNAPSHOT" --tags downlaod
+
+6- deployment 
+	ansible-playbook GDDR.yml --extra-vars "env=566_int tier=BT module=pord version=1.12.0-SNAPSHOT" --tags deploy  
+
+7- Get the deployment info for double check of the deployment performed 
+		ansible BT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep masterdataservices ' -u root -i I566 --become-user jboss
+
+8- Get the version of the new deployment 
+		ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions.yml --extra-vars "hosts_group=All_TEST_566 env_prefix=I566"
+
+9 to check the version on firfox 
+		https://gepard-test.us566.corpintra.net/versions.txt
+
+
+*** undeploy Manually 
+	on the server (i566algebt01)
+	cd /srv/jboss/jboss-eap-7.2/bin 
+	./jboss-cli.sh -c  "undeploy gep-pord-services-ear.ear "
+
+
+------------------------------
+----------- BT TEST  ---------
+---------    TEST       ---------
+--------- one by one ---------
+------------------------------
+
+
+1- clone the ansible Managment scripts  (any file can be user/Branch name changed accourding to the env):
+	git clone --branch W566  https://git.daimler.com/ITVD/ansible-gepard-manage.git
+
+
+2- double check of the connection of the repo :
+	cd /etc/ansible/Maha/ansible-gepard-manage
+	vi GDDR.yml
+		art_base_url: https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard
+
+3- double check that the model exist in the Instraction-template 
+
+4- perform the preparation 
+	ansible-playbook GDDR.yml --extra-vars "env=566_tst tier=BT module=pord version=1.12.0-SNAPSHOT" --tags prepare
+
+5- perform the download  
+	ansible-playbook GDDR.yml --extra-vars "env=566_tst tier=BT module=pord version=1.12.0-SNAPSHOT" --tags downlaod
+
+6- deployment 
+	ansible-playbook GDDR.yml --extra-vars "env=566_tst tier=BT module=pord version=1.12.0-SNAPSHOT" --tags deploy  
+
+7- Get the deployment info for double check of the deployment performed 
+		ansible BT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep masterdataservices ' -u root -i T566 --become-user jboss
+
+8- Get the version of the new deployment 
+		ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions.yml --extra-vars "hosts_group=All_TEST_566 env_prefix=T566"
+
+9 to check the version on firfox 
+		https://gepard-test.us566.corpintra.net/versions.txt
+
+
+
+
+
+------------------------------
+----------- BT TEST  ---------
+-------- Full Deployment -----
+------------------------------
+
+1- 
+git clone --branch T566 https://git.daimler.com/ITVD/ansible-gepard-deploy.git
+
+2-
+update the release file with the new delivery URL 
+
+3-
+ansible-playbook deployment.yml -i T566 --tags be --vault-password-file /tmp/.terces --extra-vars "version=2.7.0" 
+
+*********
+1-dispable all active/passive modules ( or only passive modules )  ? while the EAP still running  , using the below :
+
+cp /etc/ansible instructions_566_template instructions
+edit the file and change all passive/active  to disabled  using 
+
+:%s/passive/disabled/g
+
+ 
+2-run the playbook like:
+    #ansible-playbook DDR_manage.yml --tags stop --extra-vars "hosts_group=I566_BT_Deploy" 
+
+             --> stop action will stop any module tagged with disabled .
+			 

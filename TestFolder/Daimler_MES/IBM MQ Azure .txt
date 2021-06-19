@@ -1,0 +1,43 @@
+1- connect to the server dev02 on Azure 
+	ansible@orch:/home/hgaber$ ssh azadmin@devat02.gepard.azure.cloud
+
+2- switch user to mqm user 
+	azadmin@devat02:~> sudo su -
+
+	devat02:/etc/systemd/system # su - mqm
+		mqm@devat02:~> ps -ef|grep GEPARD
+		mqm      27199 27077  0 13:57 pts/0    00:00:00 grep --color=auto GEPARD
+
+3- check the mqm process 
+
+4- start the QM process as it was down 
+
+mqm@devat02:~> strmqm QM_GEPARD
+	WebSphere MQ queue manager 'QM_GEPARD' starting.
+	The queue manager is associated with installation 'Installation1'.
+	9 log records accessed on queue manager 'QM_GEPARD' during the log replay phase.
+	Log replay for queue manager 'QM_GEPARD' complete.
+	Transaction manager state recovered for queue manager 'QM_GEPARD'.
+	WebSphere MQ queue manager 'QM_GEPARD' started using V8.0.0.4.
+
+5- recheck the mqm process again 
+mqm@devat02:~> ps -ef|grep -i GEPARD
+	mqm      27331     1  1 13:58 ?        00:00:00 /opt/mqm/bin/amqzxma0 -m QM_GEPARD -u mqm
+	mqm      27336 27331  0 13:58 ?        00:00:00 /opt/mqm/bin/amqzfuma -m QM_GEPARD
+	mqm      27343 27331  0 13:58 ?        00:00:00 /opt/mqm/bin/amqzmuc0 -m QM_GEPARD
+	mqm      27359 27331  0 13:58 ?        00:00:00 /opt/mqm/bin/amqzmur0 -m QM_GEPARD
+	mqm      27364 27331  0 13:58 ?        00:00:00 /opt/mqm/bin/amqzmuf0 -m QM_GEPARD
+	mqm      27368 27331  0 13:58 ?        00:00:00 /opt/mqm/bin/amqrrmfa -m QM_GEPARD -t2332800 -s2592000 -p2592000 -g5184000 -c3600
+	mqm      27381 27331  0 13:58 ?        00:00:00 /opt/mqm/bin/amqzmgr0 -m QM_GEPARD
+	mqm      27387 27364  0 13:58 ?        00:00:00 /opt/mqm/bin/amqfqpub -mQM_GEPARD
+	mqm      27393 27381  0 13:58 ?        00:00:00 /opt/mqm/bin/runmqchi -m QM_GEPARD -q SYSTEM.CHANNEL.INITQ -r
+	mqm      27394 27381  0 13:58 ?        00:00:00 /opt/mqm/bin/amqpcsea QM_GEPARD
+	mqm      27395 27381  0 13:58 ?        00:00:00 /opt/mqm/bin/runmqlsr -r -m QM_GEPARD -t TCP -p 1414
+	mqm      27396 27331  0 13:58 ?        00:00:00 /opt/mqm/bin/amqzlaa0 -mQM_GEPARD -fip0
+	mqm      27397 27387  0 13:58 ?        00:00:00 /opt/mqm/bin/amqfcxba -m QM_GEPARD
+	mqm      27426 27395  1 13:58 ?        00:00:00 /opt/mqm/bin/amqrmppa -m QM_GEPARD
+	mqm      27513 27077  0 13:58 pts/0    00:00:00 grep --color=auto -i GEPARD
+
+6- check the port listn
+mqm@devat02:~> netstat -nl|grep 1414
+	tcp        0      0 :::1414                 :::*                    LISTEN

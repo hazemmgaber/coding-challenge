@@ -1,0 +1,46 @@
+
+
+
+
+FE:
+https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-es/2.7.0/20201026.2/gep-fe-main-es-2.7.0.zip
+https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-de/2.7.0/20201026.2/gep-fe-main-de-2.7.0.zip
+https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-en/2.7.0/20201026.2/gep-fe-main-en-2.7.0.zip 
+
+DT:
+https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/gep-dt-wrkaservices/1.0.79-SNAPSHOT/gep-dt-wrkaservices-1.0.79-20201026.131555-2.war
+
+DB:
+https://git.daimler.com/ITVD/geparddb/blob/release/Rel_0.41.0_v2.7/databaseScripts/Model_GEPA/GEPA_lookup_definition_DML.sql
+
+
+
+
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/gep-dt-wrkaservices/1.0.79-SNAPSHOT/gep-dt-wrkaservices-1.0.79-20201026.131555-2.war" 
+ansible DT -m copy -a "src=/tmp/gep-dt-wrkaservices-1.0.79-20201026.131555-2.war dest=/tmp" -u root -i I566 --become-user jboss
+ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gep-dt-wrkaservices-1.0.79-20201026.131555-2.war --name=gep-dt-wrkaservices.war --force"' -u root -i I566 --become-user jboss
+ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep wrkaservices ' -u root -i I566 --become-user jboss
+ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions.yml --extra-vars "hosts_group=All_INT_566 env_prefix=I566"
+
+
+
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-es/2.7.0/20201026.2/gep-fe-main-es-2.7.0.zip"
+ansible LB -m copy -a "src=/tmp/gep-fe-main-es-2.7.0.zip dest=/tmp" -u root -i I566 --become-user jboss
+
+
+
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-de/2.7.0/20201026.2/gep-fe-main-de-2.7.0.zip"
+ansible LB -m copy -a "src=/tmp/gep-fe-main-de-2.7.0.zip dest=/tmp" -u root -i I566 --become-user jboss
+
+
+
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-en/2.7.0/20201026.2/gep-fe-main-en-2.7.0.zip"
+ansible LB -m copy -a "src=/tmp/gep-fe-main-en-2.7.0.zip dest=/tmp" -u root -i I566 --become-user jboss
+
+
+ 
+PL-12578 DevOps Admin Support Sprint 74PL-12851
+AWS and Elabs Health check
+
+
+https://master.csp-nonprod.mercedes-benz.com/console/project/prices-dev/browse/secrets/aws-automation-user-mpl-nonprod

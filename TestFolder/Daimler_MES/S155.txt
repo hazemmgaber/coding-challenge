@@ -1,0 +1,8 @@
+ansible-playbook deployment.yml -i S155 --tags download --limit AT --vault-password-file /tmp/.terces --extra-vars "version=2.8.0_ARG_PROD" --skip-tags esb_logging_profiles,esb_logging_profiles_deletion,esb_logging_profiles_recreation
+
+ansible-playbook deployment.yml -i S155 --tags download --limit BT --vault-password-file /tmp/.terces --extra-vars "version=2.8.0_ARG_PROD" --skip-tags bt_logging_profiles
+
+ansible-playbook deployment.yml -i S155 --tags download --limit DT --vault-password-file /tmp/.terces --extra-vars "version=2.8.0_ARG_PROD" --skip-tags dt_logging_profiles
+
+ansible-playbook deployment.yml -i S155 --tags download --limit LB --vault-password-file /tmp/.terces --extra-vars "version=2.8.0_ARG_PROD" 
+

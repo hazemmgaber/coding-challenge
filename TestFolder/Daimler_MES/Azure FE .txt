@@ -1,0 +1,89 @@
+
+
+
+------------------------------
+------------  FE  ------------   
+--------- One by One ---------
+------------------------------
+
+1- clone the ansible deployment scripts  (any file can be user/Branch name changed accourding to the env): 
+	cd /etc/ansible/hgaber
+	git clone --branch DEV https://git.daimler.com/ITVD/ansible-gepard-deploy.git
+
+2- update the file with the new delivery version as send in the deployment sheet:
+		/etc/ansible/Maha/ansible-gepard-deploy/releases> vi dt_release.yml
+
+3- backup the Gepard directory in the FE to rollback cases :
+	ansible LB -a 'cp -r /srv/www/vhosts/gepard  /srv/www/vhosts/gepard_12012021' -u azadmin -i DEV --become-user root --vault-password-file /tmp/.terces
+
+4- clean the tmp files :
+ansible-playbook deployment.yml --tags cleanup -i DEV --vault-password-file /tmp/.terces --extra-vars "version=2.8.0" --limit LB
+
+5- perform the deployment
+	ansible-playbook deployment.yml -i DEV --tags fe --vault-password-file /tmp/.terces --extra-vars "version=2.8.0"
+
+6- checking the URL from the browzer :
+	https://gepard-dev.gepard.cloud.corpintra.net/en
+
+7- checking andon URL 
+	https://gepard-dev.gepard.cloud.corpintra.net/andon/
+
+8- save the changes on the git server 
+	Git status 
+	Git add 
+	Git commit 
+
+
+
+------------------------------
+------------  FE  ------------   
+--------- One by One ---------
+------------------------------
+
+1- clone the ansible deployment scripts  (any file can be user/Branch name changed accourding to the env): 
+	cd /etc/ansible/hgaber
+	git clone --branch T566 https://git.daimler.com/ITVD/ansible-gepard-deploy.git
+
+2- update the file with the new delivery version as send in the deployment sheet:
+		/etc/ansible/Maha/ansible-gepard-deploy/releases> vi dt_release.yml
+
+3- backup the Gepard directory in the FE to rollback cases :
+	ansible LB -a 'cp -r /srv/www/vhosts/gepard  /srv/www/vhosts/gepard_12012021' -u azadmin -i DEV --become-user root --vault-password-file /tmp/.terces
+
+4- clean the tmp files :
+ansible-playbook deployment.yml --tags cleanup -i T566 --vault-password-file /tmp/.terces --extra-vars "version=2.8.0" --limit LB
+
+5- perform the deployment
+	ansible-playbook deployment.yml -i T566 --tags fe --vault-password-file /tmp/.terces --extra-vars "version=2.8.0"
+
+6- checking the URL from the browzer :
+	https://gepard-dev.gepard.cloud.corpintra.net/en
+
+7- checking andon URL 
+	https://gepard-test.us566.corpintra.net/andon/
+
+8- save the changes on the git server 
+	Git status 
+	Git add 
+	Git commit 
+	
+############
+Dummy 
+###########
+
+
+fe_andon_en: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-andon-en/2.8.0/20201215.56/gep-fe-andon-en-2.8.0.zip
+fe_main_de: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-de/2.8.0/20210221.11/gep-fe-main-de-2.8.0.zip
+fe_main_en: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-en/2.8.0/20210221.11/gep-fe-main-en-2.8.0.zip
+fe_main_es: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-es/2.8.0/20210221.11/gep-fe-main-es-2.8.0.zip
+fe_reparts_en: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-reparts-en/2.9.0/20201222.11/gep-fe-reparts-en-2.9.0.zip
+fe_signals_en: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-signals-en/2.9.0/20201222.11/gep-fe-signals-en-2.9.0.zip
+fe_glog_en: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-glog-en/2.8.0/20201215.56/gep-fe-glog-en-2.8.0.zip
+fe_scanner_en: https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-fe-scanner-en/0.5.3/gep-fe-scanner-en-0.5.3.zip
+fe_styleguide: https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-fe-styleguide/1.0-122/gep-fe-styleguide-1.0-122.zip
+dt_icons: https://artifacts.daimler.com/artifactory/vpp-main-maven-releases/com/daimler/gepard/gep-fe-icons/1.0.0/gep-fe-icons-1.0.0.zip
+dt_apispec: https://artifacts.daimler.com/artifactory/vpp-main-npm-releases/gep-dt-apispec/-/gep-dt-apispec-0.30.508.tgz
+
+
+
+

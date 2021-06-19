@@ -1,0 +1,157 @@
+
+
+
+
+#####################
+	TEST 065 		#
+#####################
+	   BT     		#
+#####################
+	one by one 		#
+#####################
+
+
+1- clone the ansible Managment scripts  (any file can be user/Branch name changed accourding to the env):
+	git clone --branch PROD_065  https://git.daimler.com/ITVD/ansible-gepard-manage.git
+
+
+2- double check of the connection of the repo :
+	cd /etc/ansible/Maha/ansible-gepard-manage
+	vi GDDR.yml
+		art_base_url: https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard
+
+3- double check that the model exist in the Instraction-template 
+
+4- perform the preparation 
+	ansible-playbook GDDR.yml --extra-vars "env=065-prod tier=BT module=pord version=1.12.0-SNAPSHOT" --tags prepare
+
+5- perform the download  
+	ansible-playbook GDDR.yml --extra-vars "env=065-prod tier=BT module=pord version=1.12.0-SNAPSHOT" --tags downlaod
+
+6- deployment 
+	ansible-playbook GDDR.yml --extra-vars "env=065-prod tier=BT module=pord version=1.12.0-SNAPSHOT" --tags deploy  
+
+7- Get the deployment info for double check of the deployment performed 
+		ansible BT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep masterdataservices ' -u root -i S065 --become-user jboss
+
+8- Get the version of the new deployment 
+		ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions.yml --extra-vars "hosts_group=All_TEST_566 env_prefix=S065"
+
+9 to check the version on firfox 
+		https://gepard-test.us566.corpintra.net/versions.txt
+
+
+
+
+
+
+
+#####################
+	BT TEST  		#
+#####################
+  Full Deployment   #
+#####################
+
+
+1- 
+git clone --branch PROD_065 https://git.daimler.com/ITVD/ansible-gepard-deploy.git
+
+2-
+update the release file with the new delivery URL 
+
+3-
+###ansible-playbook deployment.yml -i S065 --tags be --vault-password-file /tmp/.terces --extra-vars "version=2.7.0" 
+
+ansible-playbook deployment.yml --tags cleanup -i S065 --vault-password-file /tmp/.terces --extra-vars "version=2.8.0" --limit BT 
+
+ansible-playbook deployment.yml --tags downlaod --limit BT  --vault-password-file /tmp/.terces -i S065 --extra-vars "version=2.8.0-2March" --skip-tags bt_logging_profiles
+ansible-playbook deployment.yml --tags disabled --limit BT  --vault-password-file /tmp/.terces -i S065 --extra-vars "version=2.8.0-2March" --skip-tags bt_logging_profiles
+
+ansible-playbook deployment.yml --tags DXC --limit BT  --vault-password-file /tmp/.terces -i S065 --extra-vars "version=2.8.0-2March" --skip-tags bt_logging_profiles
+
+ansible-playbook deployment.yml --tags DXC-active --limit BT  --vault-password-file /tmp/.terces -i S065 --extra-vars "version=2.8.0-2March" --skip-tags bt_logging_profiles
+ansible-playbook deployment.yml --tags DXC-passive --limit BT  --vault-password-file /tmp/.terces -i S065 --extra-vars "version=2.8.0-2March" --skip-tags bt_logging_profiles
+
+ansible-playbook deployment.yml --tags download --limit BT_PLF  --vault-password-file /tmp/.terces -i S065 --extra-vars "version=2.8.0-2March" --skip-tags enabled,passive,bt_plf_logging_profiles
+ansible-playbook deployment.yml --tags plf --limit BT_PLF  --vault-password-file /tmp/.terces -i S065 --extra-vars "version=2.8.0-2March" --skip-tags enabled,passive,bt_plf_logging_profiles
+
+
+
+
+
+
+
+*********
+1-dispable all active/passive modules ( or only passive modules )  ? while the EAP still running  , using the below :
+
+cp /etc/ansible instructions_566_template instructions
+edit the file and change all passive/active  to disabled  using 
+
+:%s/passive/disabled/g
+
+ 
+2-run the playbook like:
+    #ansible-playbook DDR_manage.yml --tags stop --extra-vars "hosts_group=I566_BT_Deploy" 
+
+             --> stop action will stop any module tagged with disabled .
+			 
+
+
+
+#####################
+	Example 		#
+#####################
+
+
+BT	DXC	 	 	 	x	bt_eat:	gep-eat-services	1.0.0-SNAPSHOT	ear	https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-eat-services/1.0.0-SNAPSHOT/gep-eat-services-1.0.0-SNAPSHOT.ear
+
+BT	DXC	 	 	 	x	bt_pmas:	gep-pmas-services	1.9.0-SNAPSHOT	ear	https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-pmas-services/1.9.0-SNAPSHOT/gep-pmas-services-1.9.0-SNAPSHOT.ear
+																			https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-pmas-services/1.9.0-SNAPSHOT/gep-pmas-services-1.9.0-SNAPSHOT.ear"
+
+
+1- clone the ansible Managment scripts  (any file can be user/Branch name changed accourding to the env):
+	git clone --branch PROD_065  https://git.daimler.com/ITVD/ansible-gepard-manage.git
+
+
+2- double check of the connection of the repo :
+	cd /etc/ansible/Maha/ansible-gepard-manage
+	vi GDDR.yml
+		art_base_url: https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard
+
+3- double check that the model exist in the Instraction-template 
+
+4- perform the preparation 
+	ansible-playbook GDDR.yml --extra-vars "env=065_prod tier=BT module=eat version=1.0.0-SNAPSHOT" --tags prepare
+	ansible-playbook GDDR.yml --extra-vars "env=065_prod tier=BT module=pmas version=1.9.0-SNAPSHOT" --tags prepare
+
+
+5- perform the download  
+	ansible-playbook GDDR.yml --extra-vars "env=065_prod tier=BT module=eat version=1.0.0-SNAPSHOT" --tags downlaod
+	ansible-playbook GDDR.yml --extra-vars "env=065_prod tier=BT module=pmas version=1.9.0-SNAPSHOT" --tags downlaod
+
+6- deployment 
+	ansible-playbook GDDR.yml --extra-vars "env=065_prod tier=BT module=pord version=1.12.0-SNAPSHOT" --tags  deploy 
+
+7- Get the deployment info for double check of the deployment performed 
+		ansible BT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep eat ' -u root -i S065 --become-user jboss
+		ansible BT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep pmas ' -u root -i S065 --become-user jboss
+
+8- Get the version of the new deployment 
+		ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions.yml --extra-vars "hosts_group=All_TEST_566 env_prefix=S065"
+
+9 to check the version on firfox 
+		https://gepard-test.us566.corpintra.net/versions.txt
+
+
+
+    art_base_url: https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard
+
+
+
+
+
+										
+DT	DT	 	 	 	x	dt_logistics:	gep-dt-logisticsservices	1.0.135-SNAPSHOT	war	https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-dt-logisticsservices/1.0.135-SNAPSHOT/gep-dt-logisticsservices-1.0.135-SNAPSHOT.war
+
+DT	DT	 	 	 	x	dt_masterdata:	gep-dt-masterdataservices	1.0.91-SNAPSHOT	war	https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-dt-masterdataservices/1.0.91-SNAPSHOT/gep-dt-masterdataservices-1.0.91-SNAPSHOT.war
+

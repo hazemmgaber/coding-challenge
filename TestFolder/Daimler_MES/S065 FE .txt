@@ -1,0 +1,60 @@
+
+
+
+
+
+#####################
+	  S065   		#
+#####################
+	   FE   		#
+#####################
+	one by one 		#
+#####################
+
+
+1- clone the ansible deployment scripts  (any file can be user/Branch name changed accourding to the env): 
+	cd /etc/ansible/hgaber
+	git clone --branch PROD_065 https://git.daimler.com/ITVD/ansible-gepard-deploy.git
+
+2- update the file with the new delivery version as send in the deployment sheet:
+		/home/ansible/hgaber/ansible-gepard-deploy/releases> vi dt_release.yml
+
+3- backup the Gepard directory in the FE to rollback cases :  /srv/www/vhosts/gepard  
+
+4- clean the tmp files :
+ansible-playbook deployment.yml --tags cleanup -i S065 --vault-password-file /tmp/.terces --extra-vars "version=2.8.1" --limit LB
+
+5- perform the deployment
+	ansible-playbook deployment.yml -i S065 --tags fe --vault-password-file /tmp/.terces --extra-vars "version=2.8.1"
+	ansible-playbook deployment.yml -i S065 --tags fe  --vault-password-file /tmp/.terces --extra-vars "version=2.8.0"  --limit LB --skip-tags skip_esb_logging_profiles,skip_esb_logging_profiles_deletion,skip_esb_logging_profiles_recreation
+
+
+6- checking the URL from the browzer :
+https://gepard.de065.corpintra.net/en/
+
+7- checking andon URL 
+https://gepard.de065.corpintra.net/versions.txt
+
+8- save the changes on the git server 
+	Git status 
+	Git add 
+	Git commit 
+
+
+
+
+
+#####################
+	Dummy   		#
+#####################
+ 
+
+fe_andon_en: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-andon-en/2.8.0/20201217.15/gep-fe-andon-en-2.8.0.zip
+fe_glog_en: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-glog-en/2.8.0/20210106.23/gep-fe-glog-en-2.8.0.zip
+fe_main_de: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-de/2.8.0/20210216.3/gep-fe-main-de-2.8.0.zip
+fe_main_en: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-en/2.8.0/20210216.3/gep-fe-main-en-2.8.0.zip
+fe_main_es: https://artifacts.daimler.com/artifactory/vpp-main-generic-snapshots/gepard/gep-fe-main-es/2.8.0/20210216.3/gep-fe-main-es-2.8.0.zip
+
+
+
+

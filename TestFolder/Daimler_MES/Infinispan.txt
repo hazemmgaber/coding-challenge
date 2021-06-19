@@ -1,0 +1,12 @@
+	s065algeat01:/tmp/conf/infinispan-cache/create # /srv/jboss/infinispan-server-9.4.8.Final/bin/ispn-cli.sh -c --file=esb-tdis-adapter-create-ISPAN-cache.cli
+{
+    "outcome" => "success",
+    "result" => undefined,
+    "server-groups" => {"cluster" => {"host" => {
+        "ispan" => {"server-two" => {"response" => {
+            "outcome" => "success",
+            "result" => undefined
+        }}},
+        "master" => {"server-one" => {"response" => {"outcome" => "success"}}}
+    }}}
+}

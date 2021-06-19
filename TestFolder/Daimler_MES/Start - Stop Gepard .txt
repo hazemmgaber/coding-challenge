@@ -1,0 +1,129 @@
+###############
+System Restart#
+###############
+
+
+System restarts are done in the following situations. 
+	Full release deployments, during backup of the DB at the start of the change. 
+	After finishing the deployment and enabling the Archive log mode on the DB.
+	Complete outage of underlying infrastructure (VMs, power outage, etc..).
+
+Logical Flow
+System restart has to follow a certain sequence based on the dependencies between the components of the system. 
+1.	The first dependency is the Database, this component has to be the last one to shutdown and the first one that should be started. Both the Oracle and PostgreSQL databases should be treated with the same dependency order, both of them should be stopped last and started first. 
+2.	The FE Apache servers are the second dependency, normally they should never be shutdown because they are hosting the maintenance page for the system users. However, in case of VM failure or power outage those servers should be restored at the beginning so that the maintenance page is restored quickly. 
+3.	The most central components in the system are the Brokers and those has to be stopped after all EAPs and started before any them. Usually we start the master instances first (on AT03 machines and AT04 for PLF master instance) and then start the secondary instances (on AT04 machines and AT03 for PLF instances). 
+4.	Next is the Infinispan servers as they are a dependency for almost all of the Gepard modules, So, they should stopped after stopping the EAPs and started before any of them. The point is that the modules depend on the availability of the caches during shutdown to clear them out, and during startup to start caching important data.
+5.	AT EAPs should be the last EAPs to stop and the first ones to start. There is no specific sequence for them to start (AT01 or AT02 in any order). They are important because they handle most of the communication between DT and BT.
+6.	BT EAPs and DT EAPs are equally at the same dependency order. Both of them depend on the above components so they should be stopped first and started last.  
+	1.	For BT EAPs the sequence at which the modules are started is important, and also the stop sequence in case of graceful shutdown, of course in case of system crash this sequence doesn't matter.
+	2.	Here is the stop sequence for graceful shutdown, 
+		first stop the passive modules then 
+		stop the active modules and 
+		finally DXC modules. Stopping the passive modules first is to avoid the singleton provider election that will take place and waste time (and even cause EAP timeouts) in case we stopped the active modules first. 
+	3.	In case the system crashed and restored, the EAP processes should be stopped and all the modules should be disabled by injecting the flag enabled="false" in the standalone.xml files.
+	4.	Here is the startup sequence, 
+		first we start EADG active modules, 
+		then DXC modules to restore all functionalities as quick as possible, 
+		finally we start the passive modules, and the reason for that is the same as mentioned above, to avoid wasting time and going into EAPs timeouts because of the elections for the active modules.
+7.	The least critical components are the RH SSO (Keycloak) and the GeoServer both are hosted on the DT machines. They don't have to be stopped before the EAPs or started after them, however, both of them are completely dependent on the Oracle and PostgreSQL databases respectively. 
+8.	Maintenance Page should be enabled before stopping the system, and should be enabled only when we are ready to do sanity tests. 
+
+#################
+Restart Sequence#
+#################
+Here we highlight the sequence of the system restart using Ansible ad-hoc commands. 
+______________
+Stop sequence |
+______________|
+
+1.	Enable maintenance page. 
+		ansible-playbook gepard_restart.yml --tags enable_maintenance -i I155 --limit LB --ask-vault-pass
+2.	Stop DT EAPs
+	(notice that service name for 566 is jboss-eap.service)
+		ansible DT -m systemd -a 'service=jboss-eap7.service state=stopped' -u root -i I155
+3.	Stop BT EAPs 
+	1.	Graceful 
+		1.	ansible-playbook GDDR.yml --extra-vars "env=155_int tier=BT module=active version=1.2.3" --tags prepare
+		2.	ansible-playbook DDR_manage.yml --extra-vars "hosts_group=BT" -i I155 --tags stop
+		(you don't have to enter a specific version, just enter any value)
+	2.	Non-graceful
+		1.	ansible BT -m systemd -a 'service=jboss-eap7.service state=started' -u root -i I155
+		(notice that service name for 566 is jboss-eap.service)
+		2.	disable all running modules using
+		ansible-playbook gepard_restart.yml --tags disable_modules_standalone  --ask-vault-pass -i I155 BT
+	3.	For PLF EAPs in 566, you don't have to go through this sequence, instead just use the Linux service to shutdown the EAPs as is.
+			ansible PLF -m systemd -a 'service=plf-eap.service state=stopped' -u root -i I566
+4.	Stop AT EAPs
+		ansible AT -m systemd -a 'service=jboss-eap7.service state=stopped' -u root -i I155
+5.	Stop Infinispan
+		ansible ISPAN -m systemd -a 'service=infinispan.service state=stopped' -u root -i I155
+		(for 566 PLF, use same command but change ansible group to ISPAN_PLF)
+6.	Stop AMQ Brokers
+		ansible AMQ -m systemd -a 'service=AMQ1-service.service state=stopped' -u root -i I155 
+		(for 566 PLF, change service name to AMQ-PLF-service)
+7.	Stop RH-SSO
+	ansible DT -m systemd -a 'service=rh-sso.service state=stopped' -u root -i I155
+8.	Stop GeoServer
+	ansible DT -m systemd -a 'service=geoserver.service state=stopped' -u root -i I155
+9.	Stop Oracle DB and PostgreSQL DB: This is a task for Daimler DBAs.
+
+_______________
+Start sequence |
+_______________|
+
+1.	Oracle DB and PostgreSQL DB must be up and running. 
+2.	Start AMQ (start on AT03 first so that it becomes the master)
+			ansible AMQ -m systemd -a 'service=AMQ1-service.service state=started' -u root -i I155 --limit I155ALGEAT03
+			ansible AMQ -m systemd -a 'service=AMQ1-service.service state=started' -u root -i I155 --limit I155ALGEAT04
+		(for 566 PLF, change service name to AMQ-PLF-service, and start the master instance on AT04 to balance the load on the 2 machines) 
+			ansible AMQ -m systemd -a 'service=AMQ-PLF-service.service state=started' -u root -i I155 --limit I155ALGEAT04
+			ansible AMQ -m systemd -a 'service=AMQ-PLF-service.service state=started' -u root -i I155 --limit I155ALGEAT03
+3.	Start Infinispan (since Infinispan is running in domain mode, the node on AT01 should be started first otherwise the second node won't be able to start)
+			ansible ISPAN -m systemd -a 'service=infinispan.service state=started' -u root -i I155 --limit I155ALGEAT01
+			ansible ISPAN -m systemd -a 'service=infinispan.service state=started' -u root -i I155 --limit I155ALGEAT02
+		(for 566 PLF, use same command but change ansible group to ISPAN_PLF)
+			ansible ISPAN_PLF -m systemd -a 'service=infinispan.service state=started' -u root -i I155 --limit I155ALGEAT01
+			ansible ISPAN_PLF -m systemd -a 'service=infinispan.service state=started' -u root -i I155 --limit I155ALGEAT02
+4.	Start AT
+		ansible AT -m systemd -a 'service=jboss-eap7.service state=started' -u root -i I155
+5.	Start BT, regardless of the method used in shutdown BT has to be started in the following sequence,   
+	1.	Start the EAP (that should have all modules disabled)
+		ansible BT systemd -a 'service=jboss-eap7.service state=stopped' -u root -i I155
+	2.	Start EDAG active modules
+		ansible-playbook GDDR.yml --extra-vars "env=155_int tier=BT module=active version=1.2.3" --tags prepare
+		ansible-playbook DDR_manage.yml --extra-vars "hosts_group=BT" -i I155 --tags start
+		(you don't have to enter a specific version, just enter any value)
+	3.	Start DXC modules
+		ansible-playbook GDDR.yml --extra-vars "env=155_int tier=BT module=DXC version=1.2.3" --tags prepare
+		ansible-playbook DDR_manage.yml --extra-vars "hosts_group=BT" -i I155 --tags start
+	4.	Start EDAG passive modules
+		ansible-playbook GDDR.yml --extra-vars "env=155_int tier=BT module=passive version=1.2.3" --tags prepare
+		ansible-playbook DDR_manage.yml --extra-vars "hosts_group=BT" -i I155 --tags start
+	5.	For 566, start PLF EAPs using
+		ansible PLF -m systemd -a 'service=plf-eap.service state=started' -u root -i I566
+6.	Start DT
+		ansible DT -m systemd -a 'service=jboss-eap7.service state=started' -u root -i I155
+7.	Start SSO
+		ansible DT -m systemd -a 'service=rh-sso.service state=started' -u root -i I155
+8.	Start GeoServer
+		ansible DT -m systemd -a 'service=geoserver.service state=started' -u root -i I155
+9.	Disable Maintenance Page.
+		ansible-playbook gepard_restart.yml --tags disable_maintenance -i I155 --limit LB --ask-vault-pass
+		
+
+_______________
+Start Module 
+______________
+Start AMQ 
+
+_______________
+
+
+
+
+
+
+
+from Session stop BT modules 
+- disable all passive modules first then disable the active modules 

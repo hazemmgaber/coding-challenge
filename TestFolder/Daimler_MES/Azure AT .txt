@@ -1,0 +1,122 @@
+
+
+
+#####################
+  AT  			
+#####################    
+ One by One         #
+#####################
+
+
+1- copy the delivery from the artifactory to the ansible server in /tmp directory  ( get the location from the deployment sheet)
+	cd /tmp 
+	curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/esb/gepard-esb-plf-inspection/2.7.0-SNAPSHOT/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war"
+	OR 
+	wget --header='X-JFrog-Art-Api:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg' https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/esb/gepard-esb-plf-inspection/2.7.0-SNAPSHOT/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war
+
+2- copy the delivery from ansible to the AT servers									
+		ansible AT -m copy -a "src=/tmp/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war dest=/tmp" -u root -i DEV --become-user jboss
+		OR 
+		ansible AT -m shell  -a "cp -r /tmp/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war /tmp" -u root -i DEV --become-user jboss
+
+3- Perform the deployment using CLI : 
+		ansible AT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gepard-esb-plf-inspection-2.7.0-SNAPSHOT.war --name=gepard-esb-plf-inspection.war --force"' -u root -i DEV --become-user jboss
+
+4- Get the deployment info for double check of the deployment performed 
+		ansible AT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep esb-plf-inspection ' -u root -i DEV --become-user jboss
+
+5- Get the version of the new deployment  ((( from crontab -e )))
+cd /home/ansible/ansible-gepard-versions
+	ansible-playbook  retrieve_versions.yml --extra-vars "hosts_group=All_DEV env_prefix=DEV" -i DEV --vault-password-file /tmp/.terces
+
+6 to check the version on firfox 
+		https://gepard-dev.gepard.cloud.corpintra.net/versions.txt
+
+
+
+#####################
+      AT     
+#####################	  
+   Full deployment 
+#####################
+
+after adapting the relaese files 
+
+Deploy_esb_AMQ :
+ansible-playbook deployment.yml -i DEV --tags create_queues  --vault-password-file /tmp/.terces --extra-vars "version=2.9.0" --limit AMQ
+
+ansible-playbook deployment.yml -i DEV --tags download  --vault-password-file /tmp/.terces --extra-vars "version=2.9.1" --limit AT
+
+
+esb_conf
+ansible-playbook deployment.yml -i DEV --tags esb_conf  --vault-password-file /tmp/.terces --extra-vars "version=2.9.1" --limit AT
+ansible-playbook deployment.yml -i DEV --tags esb_conf --limit AT --extra-vars "version=2.9.1"  --vault-password-file /tmp/.terces  --skip-tags esb_logging_profiles,esb_logging_profiles_deletion,esb_logging_profiles_recreation
+
+ansible-playbook deployment.yml -i DEV --tags esb --vault-password-file /tmp/.terces --extra-vars "version=2.9.1" --limit AT  --skip-tags esb_logging_profiles,esb_logging_profiles_deletion,esb_logging_profiles_recreation
+
+**** 
+for a new module : 
+- add it in the release files 
+- check the roles that the modules is exist . 
+
+
+Error :
+
+	failed: [devat01.gepard.azure.cloud] (item=/tmp/gepard-esb-logistics-proxy.war) => {"changed": true, "cmd": "./jboss-cli.sh --connect \"deploy \"/tmp/gepard-esb-logistics-proxy.war\" --force\"", "delta": "0:00:10.700510", "end": "2021-03-12 10:15:33.458109", "failed": true, "item": "/tmp/gepard-esb-logistics-proxy.war", "msg": "non-zero return code", "rc": 1, "start": "2021-03-12 10:15:22.757599", "stderr": "", "stderr_lines": [], "stdout": "{\"WFLYCTL0080: Failed services\" => {\"jboss.module.service.\\\"deployment.gepard-esb-logistics-proxy.war\\\".main\" => \"WFLYSRV0179: Failed to load module: deployment.gepard-esb-logistics-proxy.war\n    Caused by: org.jboss.modules.ModuleNotFoundException: com.daimler.gepard.esb.shared-modules\"}}", "stdout_lines": ["{\"WFLYCTL0080: Failed services\" => {\"jboss.module.service.\\\"deployment.gepard-esb-logistics-proxy.war\\\".main\" => \"WFLYSRV0179: Failed to load module: deployment.gepard-esb-logistics-proxy.war", "    Caused by: org.jboss.modules.ModuleNotFoundException: com.daimler.gepard.esb.shared-modules\"}}"]}
+
+solution : 
+	you run only deployment for full AT deployment ,
+	follow : create queues steps and configuration and then the deployment . 
+
+
+
+#####################
+	Start/Stop 		#
+#####################
+
+
+1- kill the running EAP process 
+ps -ef | grep -v grep | grep -w Standalone | awk '{print $2}' 
+kill -9 the process ID 
+
+2-  add " enabled="false" in the xml after each war and each jar if any 
+vi  /srv/jboss/jboss-eap-7.2/standalone/configuration/standalone.xml
+: %s/.war">/.war" enabled="false">/g
+
+3- switch to root 
+sudo su - root 
+
+4- start 
+cd /etc/systemd/system/
+systemctl stop jboss-eap7.service
+systemctl  start jboss-eap7.service
+
+
+5- start the modules : 
+
+-Start modules: 
+			#/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c deployment-info|grep STOPPED | awk '{printf("deploy --name=%s\n",$1) }' > deploy.cli
+			#/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c --file=deploy.cli
+
+
+6- check the logs :
+cd /srv/jboss/jboss-eap-7.2/standalone/log
+tail -f server.log 
+
+
+
+
+#####################
+       AT  
+#####################
+   Example  ---------
+#####################
+
+cd /tmp
+https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/gepard-wsdl/2.8.0-SNAPSHOT/gepard-wsdl-2.8.0-20210106.081948-8.jar
+
+
+
+
+/tmp/dum eap-modules/com/daimler/gepard/esb/shared-modules/main
+{{EAP_HOME}}/modules/com/daimler/gepard/esb/shared-modules/main/

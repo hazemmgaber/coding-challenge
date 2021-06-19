@@ -1,0 +1,31 @@
+
+deployment on Azure 
+
+
+---------------- FE ------------
+1- clone the ansible deployment scripts  (any file can be user/Branch name changed accourding to the env): 
+	cd /etc/ansible/Maha
+	git clone --branch DEV https://git.daimler.com/ITVD/ansible-gepard-deploy.git
+
+2- update the file with the new delivery version as send in the deployment sheet:
+		/etc/ansible/Maha/ansible-gepard-deploy/releases> vi dt_release.yml
+
+3- backup the Gepard directory in the FE to rollback cases :
+	ansible LB -a 'cp -r /srv/www/vhosts/gepard  /srv/www/vhosts/gepard_11122020' -u admin-i DEV --become-user jboss --vault-password-file /tmp/.terces
+
+4- clean the tmp files :
+ansible-playbook deployment.yml --tags cleanup -i DEV --vault-password-file /tmp/.terces --extra-vars "version=2.7.0" --limit LB
+
+5- perform the deployment
+	ansible-playbook deployment.yml -i DEV --tags fe --vault-password-file /tmp/.terces --extra-vars "version=2.8.0"
+
+6- checking the URL from the browzer :
+	https://gepard-dev.gepard.cloud.corpintra.net/en
+
+7- checking andon URL 
+	https://gepard-test.us566.corpintra.net/andon/
+
+8- save the changes on the git server 
+	Git status 
+	Git add 
+	Git commit 

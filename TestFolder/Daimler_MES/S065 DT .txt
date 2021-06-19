@@ -1,0 +1,84 @@
+
+
+
+
+
+#####################
+	  S065	    	#
+#####################
+	  DT	    	#
+#####################
+	one by one 		#
+#####################
+
+
+1- copy the delivery from the artifactory to the ansible server in /tmp directory  ( get the locDTion from the deployment sheet)
+	cd /tmp 
+	curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-DT-gepard-esb-configurDTion/1.0.91-SNAPSHOT/gep-DT-gepard-esb-configurDTion-2.8.0-20210208.233012-22.jar"
+	(OR)
+	wget --header='X-JFrog-Art-Api:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg' https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-DT-gepard-esb-configurDTion/1.0.91-SNAPSHOT/gep-DT-gepard-esb-configurDTion-2.8.0-20210208.233012-22.jar
+											
+2- copy the delivery from ansible to the DT servers									
+		ansible DT -m copy -a "src=/tmp/gepard-esb-configurDTion-2.8.0-20210208.233012-22.jar dest=/tmp" -u root -i S065 --become-user jboss --vault-password-file /tmp/.terces
+		ansible DT -m shell  -a "cp -r /tmp/gepard-esb-configurDTion-2.8.0-20210208.233012-22.jar /tmp" -u root -i S065 --become-user jboss --vault-password-file /tmp/.terces
+
+3- Perform the deployment using CLI : 
+		ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gep-DT-gepard-esb-configurDTion-2.8.0-20210208.233012-22.jar --name=gep-DT-gepard-esb-configurDTion.war --force"' -u root -i S065 --become-user jboss --vault-password-file /tmp/.terces
+
+4- Get the deployment info for double check of the deployment performed 
+		ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep gepard-esb-configurDTion ' -u root -i S065 --become-user jboss --vault-password-file /tmp/.terces
+
+5- Get the version of the new deployment 
+cd /home/ansible/ansible-gepard-versions
+ansible-playbook retrieve_versions.yml --extra-vars "hosts_group=Gepard env_prefix=S065" -i S065 --vault-password-file /tmp/.terces
+
+6 to check the version on firfox 
+https://gepard-S065.gepard.cloud.corpintra.net/versions.txt
+
+
+
+#####################
+	  DT	    	#
+#####################
+ Full deployment	#
+#####################
+
+
+1- Clear 
+ansible-playbook deployment.yml -i S065  --vault-password-file /tmp/.terces --extra-vars "version=2.8.0" --limit LB:DT --tags cleanup
+
+2- download : 
+ansible-playbook deployment.yml -i S065 --tags download  --vault-password-file /tmp/.terces --extra-vars "version=2.8.0"  --limit LB:DT 
+
+
+#### AT ######
+--skip-tags skip_esb_logging_profiles,skip_esb_logging_profiles_deletion,skip_esb_logging_profiles_recreation
+
+3- Deploy : 
+
+ansible-playbook deployment.yml -i S065 --tags fe  --vault-password-file /tmp/.terces --extra-vars "version=2.8.0"  --limit LB --skip-tags skip_esb_logging_profiles,skip_esb_logging_profiles_deletion,skip_esb_logging_profiles_recreation
+ansible-playbook deployment.yml -i S065 --tags dt  --vault-password-file /tmp/.terces --extra-vars "version=2.8.0"  --limit DT --skip-tags skip_esb_logging_profiles,skip_esb_logging_profiles_deletion,skip_esb_logging_profiles_recreation
+
+
+3.	undeploy gepard-esb-afps-proxy
+		ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gep-DT-gepard-esb-configurDTion-2.8.0-20210208.233012-22.jar --name=gep-DT-gepard-esb-configurDTion.war --force"' -u ansible -i S065 --become-user jboss --become
+
+without keep content 
+
+
+
+#################
+Dummy 
+#################
+
+
+
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-maven-virtual-snapshots/com/daimler/gepard/gep-dt-wrkaservices/1.0.80-SNAPSHOT/gep-dt-wrkaservices-1.0.80-20210217.130728-2.war"
+ansible DT -m copy -a "src=/tmp/gep-dt-wrkaservices-1.0.80-20210217.130728-2.war dest=/tmp" -u root -i S065 --become-user jboss --vault-password-file /tmp/.terces
+ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gep-dt-wrkaservices-1.0.80-20210217.130728-2.war --name=gep-dt-wrkaservices.war --force"' -u root -i S065 --become-user jboss --vault-password-file /tmp/.terces
+ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep gep-dt-wrkaservices ' -u root -i S065 --become-user jboss  --vault-password-file /tmp/.terces
+cd /home/ansible/ansible-gepard-versions
+ansible-playbook  retrieve_versions.yml --extra-vars "hosts_group=All_S065 env_prefix=S065" -i S065 --vault-password-file /tmp/.terces
+https://gepard-S065.gepard.cloud.corpintra.net/versions.txt
+
+

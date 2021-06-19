@@ -1,0 +1,21 @@
+
+#########################
+Deploy logging Profile  #
+		Manual			#
+########################3
+1- from ansible server go to the tmp folder 
+	cd /tmp 
+2- copy the logging Profile .jar
+	curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/esb/gepard-esb-configuration/2.8.0-SNAPSHOT/gepard-esb-configuration-2.8.0-20210208.233012-22.jar"
+3- Copy the .jar file to the AT server 
+	ansible AT -m copy -a "src=/tmp/ dest=/tmp" -u ansible -i T566 --become-user jboss
+4- connect to the AT server and unzip the jar file 
+	unzip gepard-esb-configuration-2.8.0-20210208.233012-22.jar
+5- Run the cli command to deploy the logging priles needed  (after set PATH TO THE CLI FILE from inside the extracted jar)
+	/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c --file= PATH TO THE CLI FILE from inside the extracted jar
+
+
+
+
+
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/esb/gepard-esb-configuration/2.8.0-SNAPSHOT/gepard-esb-configuration-2.8.0-20210208.233012-22.jar"

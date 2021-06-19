@@ -1,0 +1,73 @@
+
+
+
+------------------------------
+------------  DT  ------------   
+--------- One by One ---------
+------------------------------
+
+1- copy the delivery from the artifactory to the ansible server in /tmp directory  ( get the location from the deployment sheet)
+	cd /tmp 
+	curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-dt-masterdataservices/1.0.91-SNAPSHOT/gep-dt-masterdataservices-1.0.91-SNAPSHOT.war"
+	(OR)
+	wget --header='X-JFrog-Art-Api:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg' https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-dt-masterdataservices/1.0.91-SNAPSHOT/gep-dt-masterdataservices-1.0.91-SNAPSHOT.war
+											
+2- copy the delivery from ansible to the DT servers									
+		ansible DT -m copy -a "src=/tmp/masterdataservices-1.0.91-SNAPSHOT.war dest=/tmp" -u azadmin -i DEV --become-user jboss
+		ansible DT -m shell  -a "cp -r /tmp/masterdataservices-1.0.91-SNAPSHOT.war /tmp" -u azadmin -i DEV --become-user jboss
+
+3- Perform the deployment using CLI : 
+		ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gep-dt-masterdataservices-1.0.91-SNAPSHOT.war --name=gep-dt-masterdataservices.war --force"' -u azadmin -i DEV --become-user jboss --become
+
+4- Get the deployment info for double check of the deployment performed 
+		ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep masterdataservices ' -u azadmin -i DEV --become-user jboss --become
+
+5- Get the version of the new deployment 
+cd /home/ansible/ansible-gepard-versions
+	ansible-playbook  retrieve_versions.yml --extra-vars "hosts_group=All_DEV env_prefix=DEV" -i DEV --vault-password-file /tmp/.terces
+
+6 to check the version on firfox 
+https://gepard-dev.gepard.cloud.corpintra.net/versions.txt
+
+------------------------------
+------------  DT  ------------   
+------- Full deployment ------
+------------------------------
+
+((doubel check ))
+updaate the release file 
+ansible-playbook deployment.yml -i DEV --tags dt --vault-password-file /tmp/.terces --extra-vars "version=2.7.0" 
+
+
+
+------------------------------
+------------  DT  ------------   
+---------   Example  ---------
+------------------------------
+
+cd /tmp
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-dt-configurationservices/1.0.77-SNAPSHOT/gep-dt-configurationservices-1.0.77-SNAPSHOT.war"
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-maven-virtual-releases/com/daimler/gepard/gep-dt-orderservices/1.0.150-SNAPSHOT/gep-dt-orderservices-1.0.150-SNAPSHOT.war"
+curl -asf -H "X-JFrog-Art-API:AKCp5fTaQfdjYzM6vsrrcN8vXoHPruwMusuW9dM8NfNuZPE88zkTXUSFHBtP1P7QX8xkZtWAg" -O "https://artifacts.daimler.com/artifactory/vpp-main-maven-snapshots/com/daimler/gepard/esb/gepard-esb-common/2.8.0-SNAPSHOT/gepard-esb-common-2.8.0-20201229.100236-2.jar"
+
+ansible DT -m copy -a "src=/tmp/gep-dt-configurationservices-1.0.77-SNAPSHOT.war dest=/tmp" -u azadmin -i DEV --become-user jboss
+ansible DT -m copy -a "src=/tmp/gep-dt-orderservices-1.0.150-SNAPSHOT.war dest=/tmp" -u azadmin -i DEV --become-user jboss
+ansible DT -m copy -a "src=/tmp/gep-dt-logisticsservices-1.0.135-20201215.143920-2.war dest=/tmp" -u azadmin -i DEV --become-user jboss
+ansible DT -m copy -a "src=/tmp/gepard-esb-common-2.8.0-20201229.100236-2.jar dest=/tmp" -u azadmin -i DEV --become-user jboss
+
+ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gep-dt-configurationservices-1.0.77-SNAPSHOT.war --name=gep-dt-configurationservices.war --force"' -u azadmin -i DEV --become-user jboss
+ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gep-dt-orderservices-1.0.150-SNAPSHOT.war --name=gep-dt-orderservices.war --force"' -u azadmin -i DEV --become-user jboss
+ansible DT -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deploy /tmp/gep-dt-logisticsservices-1.0.135-20201215.143920-2.war --name=gep-dt-logisticsservices.war --force"' -u azadmin -i DEV --become yes -b --become-user jboss
+
+
+ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep configurationservices ' -u azadmin -i DEV --become-user jboss
+ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep orderservices ' -u azadmin -i DEV --become-user jboss
+ansible DT -m shell -a '/srv/jboss/jboss-eap-7.2/bin/jboss-cli.sh -c "deployment-info" | grep logisticsservices ' -u azadmin -i DEV -b --become-user jboss
+
+
+/ansible-gepard-versions$ 
+ansible-playbook  retrieve_versions.yml --extra-vars "hosts_group=All_DEV env_prefix=DEV" -i DEV --vault-password-file /tmp/.terces
+ansible-playbook -i /etc/ansible/hosts /etc/ansible/retrieve_versions.yml --extra-vars "hosts_group= env_prefix=DEV"
+
+
+
